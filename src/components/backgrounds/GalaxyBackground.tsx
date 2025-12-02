@@ -14,6 +14,9 @@ const GalaxyBackground: React.FC = () => {
 
         let animationFrameId: number;
         let stars: Star[] = [];
+        let dpr = window.devicePixelRatio || 1;
+        let currentSpeedX = 0;
+        let currentSpeedY = 0;
 
         // Mouse state
         let mouseX = 0;
@@ -28,14 +31,22 @@ const GalaxyBackground: React.FC = () => {
 
         const initStars = () => {
             stars = [];
-            for (let i = 0; i < 800; i++) {
+            const count = Math.max(200, Math.floor((canvas!.width * canvas!.height) / 6000));
+            for (let i = 0; i < count; i++) {
                 stars.push(new Star());
             }
         };
 
         const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            dpr = window.devicePixelRatio || 1;
+            const w = Math.max(1, Math.floor(window.innerWidth));
+            const h = Math.max(1, Math.floor(window.innerHeight));
+            canvas.width = Math.floor(w * dpr);
+            canvas.height = Math.floor(h * dpr);
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            // scale drawing to handle high DPI
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             initStars();
         };
 
@@ -101,11 +112,16 @@ const GalaxyBackground: React.FC = () => {
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            targetSpeedX = (mouseX / window.innerWidth) * 50;
-            targetSpeedY = (mouseY / window.innerHeight) * 50;
+            // target speed based on mouse position (normalized)
+            targetSpeedX = (mouseX / (window.innerWidth || 1)) * 50;
+            targetSpeedY = (mouseY / (window.innerHeight || 1)) * 50;
+
+            // smooth interpolation for speed (lerp)
+            currentSpeedX += (targetSpeedX - currentSpeedX) * 0.07;
+            currentSpeedY += (targetSpeedY - currentSpeedY) * 0.07;
 
             stars.forEach(star => {
-                star.update(targetSpeedX, targetSpeedY);
+                star.update(currentSpeedX, currentSpeedY);
                 star.draw();
             });
 
